@@ -35,6 +35,7 @@ WORD_TO_COLOR = {
     "changed": 10,
     "fatal": 9,
     "ignored": 11,
+    "pending": 6,
     "skipping": 14,
     "skipped": 14,
     "unknown": 8,

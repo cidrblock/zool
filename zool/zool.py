@@ -48,7 +48,7 @@ class Step:
     def __init__(self, name, tipe, func):
         self._index = None
         self._index_changed = False
-        self._value = None
+        self._value = []
         self._value_changed = False
         self.name = name
         self.type = tipe
@@ -137,7 +137,7 @@ class Step:
 
 
 COLUMNS = {
-    "pulls": ["author", "number", "pulls"],
+    "pulls": ["status", "author", "number", "pulls"],
     "jobs": ["result", "check run", "jobs", "voting", "% complete"],
     "runs": ["result", "runs", "failures"],
     "plays": ["result", "plays", "failures"],
@@ -163,7 +163,9 @@ class Zool:
         self._screen = screen
         self._args = args
         self._gh = Github(**vars(args))
-        self._zuul = Zuul(**vars(args)) #gh=self._gh, host=args.zuul_host, tenant=args.zuul_tenant)
+        self._zuul = Zuul(
+            **vars(args)
+        )  # gh=self._gh, host=args.zuul_host, tenant=args.zuul_tenant)
         self._ui = Ui(screen_miny=3, pbar_width=args.pbar_width)
 
         self._pulls = Step("pulls", "menu", self._gh.pulls)
@@ -204,7 +206,7 @@ class Zool:
 
     def _populate(self, step):
         if step == step.previous:
-            if step.value is None:
+            if not step.value:
                 self.logger.info("Running %s() for step %s", step.func.__name__, step.name)
                 step.value = step.func()
             return
@@ -213,7 +215,7 @@ class Zool:
             return
 
         if step.previous.selected:
-            if step.previous.changed or step.value is None:
+            if step.previous.changed or not step.value:
                 self.logger.info("Running %s() for step %s", step.func.__name__, step.name)
                 step.value = step.func(step.previous.selected)
         return
@@ -257,7 +259,7 @@ class Zool:
                     content = fhand.read()
                 self._ui.show(obj=content, xform=None, lexer="TextLexer")
             elif result["action"] == "refresh":
-                step.value = None
+                step.value = []
 
 
 def setup_logger(args):

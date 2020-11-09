@@ -1,9 +1,11 @@
+""" setup
+"""
 from setuptools import setup
 
 with open("README.md", "r") as readme:
     LONG_DESCRIPTION = readme.read()
 
-SHORT_DESCRIPTION = """
+DESCRIPTION = """
 A cli for reviewing PRs and zuul's progress
 """.strip()
 
@@ -11,7 +13,7 @@ DEPENDENCIES = ["jinja2", "pyyaml", "requests", "pygments", "lxml"]
 TEST_DEPENDENCIES = []
 
 
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 URL = "https://github.com/cidrblock/zool"
 
 setup(
@@ -25,8 +27,7 @@ setup(
         ],
     },
     install_requires=DEPENDENCIES,
-    short_description=SHORT_DESCRIPTION,
+    description=DESCRIPTION,
     long_description=LONG_DESCRIPTION,
     long_description_content_type="text/markdown",
-
 )

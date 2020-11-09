@@ -29,6 +29,7 @@ class Zuul:
         self._collection = kwargs["collection"]
         self._gh_host = kwargs["gh_host"]
         self._logger = logging.getLogger(__name__)
+        self._session = requests.Session()
 
     def jobs(self, pull):
         """the jobs given a pr
@@ -47,7 +48,7 @@ class Zuul:
         )
 
         try:
-            page = requests.get(url)
+            page = self._session.get(url)
             page.raise_for_status()
         except requests.exceptions.HTTPError as exc:
             self._logger.info(exc)
@@ -72,7 +73,7 @@ class Zuul:
         # pylint: disable=too-many-branches
 
         try:
-            page = requests.get(check_run["href"])
+            page = self._session.get(check_run["href"])
             page.raise_for_status()
         except requests.exceptions.HTTPError as exc:
             self._logger.info(exc)
@@ -109,7 +110,7 @@ class Zuul:
             name = "job_name"
 
         try:
-            page = requests.get(url)
+            page = self._session.get(url)
             page.raise_for_status()
         except requests.exceptions.HTTPError as exc:
             self._logger.info(exc)
@@ -155,7 +156,7 @@ class Zuul:
             self._logger.error("missing or unusable url in job %s", job)
             return []
         try:
-            page = requests.get(url + "job-output.json")
+            page = self._session.get(url + "job-output.json")
             page.raise_for_status()
         except requests.exceptions.HTTPError as exc:
             self._logger.info(exc)
