@@ -306,8 +306,8 @@ def main():
     parser.add_argument(
         "-t",
         "--token",
-        default=os.environ.get("GH_TOKEN"),
-        help="Github personal access token",
+        default=None,
+        help="Github personal access token (env var GH_TOKEN)",
         type=str,
     )
     parser.add_argument(
@@ -375,6 +375,7 @@ def main():
     )
 
     args = parser.parse_args()
+    args.token = os.environ.get("GH_TOKEN")
     os.environ.setdefault("ESCDELAY", "25")
     setup_logger(args)
     wrapper(Zool, args)
