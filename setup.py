@@ -11,7 +11,7 @@ DEPENDENCIES = ["jinja2", "pyyaml", "requests", "pygments", "lxml"]
 TEST_DEPENDENCIES = []
 
 
-VERSION = "0.1.0"
+VERSION = "1.0.0"
 URL = "https://github.com/cidrblock/zool"
 
 setup(
