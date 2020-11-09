@@ -6,6 +6,8 @@ import requests
 
 
 class Github:
+
+    #pylint: disable=too-few-public-methods
     """class Github"""
 
     def __init__(self, *_args, **kwargs):
@@ -65,18 +67,3 @@ class Github:
             }
             result.append(entry)
         return result
-
-    def get_checks_page(self, pull_num):
-        """get the check from the gh ui
-
-        :param pull_num: the pr number
-        :type pull_num: int
-        """
-        url = "https://{host}/{organization}/{repo}/pull/{num}/checks".format(
-            host=self._host,
-            num=pull_num,
-            organization=self._organization,
-            repo=self._collection,
-        )
-        page = requests.get(url)
-        return page

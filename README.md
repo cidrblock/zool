@@ -11,9 +11,8 @@ or
 
 ```
 $ zool --help
-usage: __main__.py [-h] -c COLLECTION [-o ORGANIZATION] [-u USERNAME] [-t TOKEN]
-                   [-l {debug,info,warning,error,critical}] [-f LOGFILE] [-zh ZUUL_HOST] [-zt ZUUL_TENANT]
-                   [-gh GH_HOST] [-gha GH_API_HOST] [-p PBAR_WIDTH]
+usage: __main__.py [-h] -c COLLECTION [-o ORGANIZATION] [-u USERNAME] [-t TOKEN] [-l {debug,info,warning,error,critical}] [-f LOGFILE] [-zh ZUUL_HOST] [-zt ZUUL_TENANT] [-gh GH_HOST] [-gha GH_API_HOST]
+                   [-p PBAR_WIDTH]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -24,7 +23,7 @@ optional arguments:
   -u USERNAME, --username USERNAME
                         The Github username for the token (default: cidrblock)
   -t TOKEN, --token TOKEN
-                        Github personal access token (default: d951afcad44a787b981ea2c8bd3bbbf2c58276c5)
+                        Github personal access token (env var GH_TOKEN) (default: None)
   -l {debug,info,warning,error,critical}, --log-level {debug,info,warning,error,critical}
                         Set the logging level (default: info)
   -f LOGFILE, --log-file LOGFILE
@@ -39,4 +38,5 @@ optional arguments:
                         The github host (api) (default: api.github.com)
   -p PBAR_WIDTH, --pbar-width PBAR_WIDTH
                         The width of the progress bars (default: 10)
+
 ```

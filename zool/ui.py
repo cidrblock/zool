@@ -30,6 +30,7 @@ COLUMN_COLORS = [3, 4, 5, 6, 11, 12, 13, 14]
 WORD_TO_COLOR = {
     "success": 10,
     "failure": 9,
+    "post_failure": 9,
     "ok": 10,
     "changed": 10,
     "fatal": 9,

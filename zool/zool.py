@@ -137,8 +137,8 @@ class Step:
 
 
 COLUMNS = {
-    "pulls": ["author", "pulls", "number"],
-    "jobs": ["result", "jobs", "voting", "% complete"],
+    "pulls": ["author", "number", "pulls"],
+    "jobs": ["result", "check run", "jobs", "voting", "% complete"],
     "runs": ["result", "runs", "failures"],
     "plays": ["result", "plays", "failures"],
     "tasks": ["result", "hostname", "task", "failures"],
@@ -163,7 +163,7 @@ class Zool:
         self._screen = screen
         self._args = args
         self._gh = Github(**vars(args))
-        self._zuul = Zuul(gh=self._gh, host=args.zuul_host, tenant=args.zuul_tenant)
+        self._zuul = Zuul(**vars(args)) #gh=self._gh, host=args.zuul_host, tenant=args.zuul_tenant)
         self._ui = Ui(screen_miny=3, pbar_width=args.pbar_width)
 
         self._pulls = Step("pulls", "menu", self._gh.pulls)

@@ -1,3 +1,8 @@
+""" do some zuul stuff
+
+TODO Sees if we can get the target url populated
+eg https://api.github.com/repos/ansible-collections/community.vmware/statuses/61f939194ba723d43381b4cbd2bd0bae3bace33b
+"""
 import json
 import logging
 import requests
@@ -5,10 +10,10 @@ from lxml import html
 from zool.utils import to_list
 
 
-class Zuul(object):
+class Zuul:
     """the zuul class, get and resturctures zuul data"""
 
-    def __init__(self, gh, host, tenant):
+    def __init__(self, *_args, **kwargs):
         """start
 
         :param gh: a github instance
@@ -18,9 +23,11 @@ class Zuul(object):
         :param tenant: the zuul tenant
         :type tenant: str
         """
-        self._host = host
-        self._tenant = tenant
-        self._gh = gh
+        self._host = kwargs["zuul_host"]
+        self._tenant = kwargs["zuul_tenant"]
+        self._organization = kwargs["organization"]
+        self._collection = kwargs["collection"]
+        self._gh_host = kwargs["gh_host"]
         self._logger = logging.getLogger(__name__)
 
     def jobs(self, pull):
@@ -31,7 +38,46 @@ class Zuul(object):
         :return: the jobs
         :rtype: list
         """
-        page = self._gh.get_checks_page(pull["number"])
+        base_url = "https://{host}/{organization}/{repo}".format(
+            host=self._gh_host, organization=self._organization, repo=self._collection
+        )
+        url = "{base_url}/pull/{num}/checks".format(
+            base_url=base_url,
+            num=pull["number"],
+        )
+
+        try:
+            page = requests.get(url)
+            page.raise_for_status()
+        except requests.exceptions.HTTPError as exc:
+            self._logger.info(exc)
+            return []
+
+        tree = html.fromstring(page.content)
+        tree.make_links_absolute(base_url)
+
+        check_runs = []
+        for element, _attribute, link, _pos in tree.iterlinks():
+            if "check_run_id=" in link:
+                check_run = {"title": element.getparent().attrib["title"], "href": link}
+                check_runs.append(check_run)
+        jobs = []
+        for check_run in check_runs:
+            jobs.extend(self._job_from_check_run(check_run))
+        return jobs
+
+    def _job_from_check_run(self, check_run):
+
+        # pylint: disable=too-many-locals
+        # pylint: disable=too-many-branches
+
+        try:
+            page = requests.get(check_run["href"])
+            page.raise_for_status()
+        except requests.exceptions.HTTPError as exc:
+            self._logger.info(exc)
+            return []
+
         tree = html.fromstring(page.content)
         link = None
         for element, _attribute, link, _pos in tree.iterlinks():
@@ -42,12 +88,12 @@ class Zuul(object):
                     break
 
         if not link:
-            self._logger.error("Unaable to find the link to zuul in pull %s", pull)
+            self._logger.error("Unaable to find the link to zuul pull in: %s", check_run)
             return []
 
         job_id = link.split("/")[-1]
         if "change" in link:
-            URL = "https://{host}/api/tenant/{tenant}/status/change/{id}".format(
+            url = "https://{host}/api/tenant/{tenant}/status/change/{id}".format(
                 host=self._host, tenant=self._tenant, id=job_id
             )
             kind = "jobs"
@@ -55,7 +101,7 @@ class Zuul(object):
             name = "name"
 
         if "buildset" in link:
-            URL = "https://{host}/api/tenant/{tenant}/buildset/{id}".format(
+            url = "https://{host}/api/tenant/{tenant}/buildset/{id}".format(
                 host=self._host, tenant=self._tenant, id=job_id
             )
             kind = "builds"
@@ -63,17 +109,17 @@ class Zuul(object):
             name = "job_name"
 
         try:
-            page = requests.get(URL)
+            page = requests.get(url)
             page.raise_for_status()
         except requests.exceptions.HTTPError as exc:
-            self.logger.info(exc)
+            self._logger.info(exc)
             return []
 
         blob = to_list(page.json())
 
         jobs = []
         for entry in blob:
-            for job in entry[kind]:
+            for job in entry.get(kind, []):
                 if kind == "builds":
                     percent = "100%"
                 else:
@@ -86,6 +132,7 @@ class Zuul(object):
                 jobs.append(
                     {
                         "result": job["result"],
+                        "check run": check_run["title"],
                         "jobs": job[name],
                         "voting": job["voting"],
                         "% complete": percent,  # job.get("remaining_time", "Done"),
@@ -105,13 +152,13 @@ class Zuul(object):
         url = job.get("_url")
         # TODO: do something with this
         if not url or url.startswith("finger://"):
-            self.logger.error("missing or unusable url in job %s", job)
+            self._logger.error("missing or unusable url in job %s", job)
             return []
         try:
             page = requests.get(url + "job-output.json")
             page.raise_for_status()
         except requests.exceptions.HTTPError as exc:
-            self.logger.info(exc)
+            self._logger.info(exc)
             return []
         runs = page.json()
         result = []
