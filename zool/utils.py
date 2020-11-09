@@ -2,6 +2,7 @@
 """
 import json
 import logging
+from math import floor
 import re
 from jinja2 import Environment, TemplateError
 from zool.filter_plugins import filters
@@ -56,7 +57,7 @@ def convert_percentages(dicts, keys, pbar_width):
         for key in [k for k in entry.keys() if k in keys]:
             value = entry[key]
             if re.match(r"^\d{1,3}%$", str(value)):
-                numx = int(pbar_width / 100 * int(value[0:-1]) + 0.5)
+                numx = floor(pbar_width / 100 * int(value[0:-1]))
                 entry["_" + key] = value
                 entry[key] = "{value} |{numx}|".format(
                     value=value.rjust(4), numx=("X" * numx).ljust(pbar_width)
