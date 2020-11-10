@@ -123,6 +123,8 @@ class Ui:
         the format of a line is [(x, s, c), (x, s, c)...]
         where x is the column, s is the string, and c is the color
         this allows for mulitple colored text at different cols
+        trim as needed, just in case, during quick resizes the data
+        may be stale compared to the current screen size
 
         :param lineno: The line number to draw on
         :type lineno: int
@@ -133,7 +135,10 @@ class Ui:
             self._screen.move(lineno, 0)
             for entry in line:
                 if entry[0] < self._screen_w:
-                    entry[1] = entry[1][0 : self._screen_w - entry[0]]
+                    current = entry[1]
+                    revised = entry[1][0 : self._screen_w - entry[0]]
+                    if current != revised:
+                        entry[1] = revised
                     self._screen.addstr(lineno, *entry)
 
     @staticmethod
@@ -181,25 +186,60 @@ class Ui:
                     colno += len(part)
         return printable
 
+    @staticmethod
+    def _distribute(available, weights):
+        """distrubute some available
+        across a list of numbers
+
+        :param available: the total
+        :type available: int
+        :param weights: numbers
+        :type weights: list of int
+        """
+        distributed_amounts = []
+        total_weights = sum(weights)
+        for weight in weights:
+            weight = float(weight)
+            pcent = weight / total_weights
+            distributed_amount = round(pcent * available)
+            distributed_amounts.append(distributed_amount)
+            total_weights -= weight
+            available -= distributed_amount
+        return distributed_amounts
+
     def _footer(self, key_dict):
+        """build a footer from the key dict
+        spread the columns out evenly
+
+        :param key_dict: all the keys and values
+        :type key_dict: dict
+        """
         colws = [len("{k}: {v}".format(k=str(k), v=str(v))) for k, v in key_dict.items()]
         gap = floor((self._screen_w - sum(colws)) / len(key_dict))
+        adj_colws = [c + gap for c in colws]
         col_starts = [0]
-        for idx, colw in enumerate(colws):
-            col_starts.append(max(colw + gap + col_starts[idx], 0))
+        for idx, colw in enumerate(adj_colws):
+            col_starts.append(colw + col_starts[idx])
         footer = []
         for idx, key in enumerate(key_dict):
-            footer.append([col_starts[idx], key, curses.A_REVERSE])
-            footer.append(
-                [
-                    col_starts[idx] + len(footer[-1][1]),
-                    " {v}".format(v=key_dict[key]),
-                ]
-            )
+            left = key[0 : adj_colws[idx]]
+            right = " {v}".format(v=key_dict[key])
+            right = right[0 : adj_colws[idx] - len(key)]
+            footer.append([col_starts[idx], left, curses.A_REVERSE])
+            footer.append([col_starts[idx] + len(left), right])
         return footer
 
     def _display(self, lines, heading=None, key_dict=None):
         # pylint: disable=too-many-branches
+        """show something on the screen
+
+        :param lines: The lines to show
+        :type lines: list
+        :param heading: the headers
+        :type heading: list
+        :param key_dict: any suplimental key to show
+        :type key_dict: dict
+        """
         heading = heading or []
         key_dict = key_dict or {}
         max_lines = self._screen_h - 1
@@ -276,14 +316,19 @@ class Ui:
         convert_percentages(dicts, cols, self._pbar_width)
         lines = [[str(d.get(c)) for c in cols] for d in dicts]
         colws = [max([len(str(v)) for v in c]) for c in zip(*lines + [cols])]
-        gap = floor((self._screen_w - sum(colws) - len(sample_prefix)) / len(cols))
+        # add a space
+        colws = [c + 1 for c in colws]
+
+        available = self._screen_w - len(sample_prefix)
+        adj_colws = self._distribute(available, colws)
+
         col_starts = [0]
-        for idx, colw in enumerate(colws):
-            col_starts.append(max(colw + gap + col_starts[idx], 0))
+        for idx, colw in enumerate(adj_colws):
+            col_starts.append(colw + col_starts[idx])
 
         header = []
         for idx, entry in enumerate(cols):
-            header.append([col_starts[idx] + len(sample_prefix), entry.upper()])
+            header.append([col_starts[idx] + len(sample_prefix), entry[0 : adj_colws[idx]].upper()])
 
         results = []
         for index, line in enumerate(lines):
@@ -296,7 +341,7 @@ class Ui:
                 else:
                     color = curses.color_pair(COLUMN_COLORS[colno])
                 print_at = col_starts[colno] + len(line_prefix)
-                result.append([print_at, coltext, color])
+                result.append([print_at, coltext[0 : adj_colws[colno]], color])
             results.append(result)
         return header, results
 
