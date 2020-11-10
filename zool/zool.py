@@ -283,6 +283,7 @@ def setup_logger(args):
 
 def main():
     """start the fun here"""
+
     parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         "-c",

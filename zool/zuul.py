@@ -40,7 +40,9 @@ class Zuul:
         :rtype: list
         """
         base_url = "https://{host}/{organization}/{repo}".format(
-            host=self._gh_host, organization=self._organization, repo=self._collection
+            host=self._gh_host,
+            organization=self._organization,
+            repo=self._collection,
         )
         url = "{base_url}/pull/{num}/checks".format(
             base_url=base_url,
@@ -60,7 +62,10 @@ class Zuul:
         check_runs = []
         for element, _attribute, link, _pos in tree.iterlinks():
             if "check_run_id=" in link:
-                check_run = {"title": element.getparent().attrib["title"], "href": link}
+                check_run = {
+                    "title": element.getparent().attrib["title"],
+                    "href": link,
+                }
                 check_runs.append(check_run)
         jobs = []
         for check_run in check_runs:

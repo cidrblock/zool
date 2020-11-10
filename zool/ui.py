@@ -25,8 +25,8 @@ except ImportError:
     HAS_LIB_YAML = False
 
 
+# assuming 16 colors here, use mod curses.COLORS to fix if 8
 COLUMN_COLORS = [3, 4, 5, 6, 11, 12, 13, 14]
-
 WORD_TO_COLOR = {
     "success": 10,
     "failure": 9,
@@ -65,7 +65,6 @@ XFORMS = {"yaml": "_to_yaml"}
 
 D_XFORM = "yaml"
 D_LEXER = "YamlJinjaLexer"
-D_FORMATTER = "Terminal256Formatter"
 
 
 class TimeoutException(Exception):
@@ -97,9 +96,11 @@ class Ui:
         self._screen_miny = screen_miny
 
         curses.curs_set(0)
-        curses.use_default_colors()
-        for i in range(0, curses.COLORS):
-            curses.init_pair(i, i, -1)
+
+        self._formatter = "Terminal256Formatter"
+        self._prefix_color = curses.color_pair(8)
+        self._set_colors()
+
         self._screen = curses.initscr()
         self.refresh = 0
 
@@ -117,6 +118,17 @@ class Ui:
             curses.flash()
             curses.beep()
             self._screen.refresh()
+
+    def _set_colors(self):
+        """Set the colors for curses
+        if 8, set the menu prefix < 8 and the formatter to simple
+        """
+        curses.use_default_colors()
+        for i in range(0, curses.COLORS):
+            curses.init_pair(i, i, -1)
+        if curses.COLORS == 8:
+            self._formatter = "TerminalFormatter"
+            self._prefix_color = curses.color_pair(0)
 
     def _add_line(self, lineno, line):
         """add a line to the screen
@@ -167,11 +179,11 @@ class Ui:
                     if cap["action"] == "39;":
                         color = None
                     elif cap["action"] == "38;5;":
-                        color = curses.color_pair(cnum)
+                        color = curses.color_pair(cnum % curses.COLORS)
                     elif not cap["action"]:
                         ansi_16 = list(chain(range(30, 38), range(90, 98)))
                         color = ansi_16.index(cnum) if cnum in ansi_16 else None
-                        color = curses.color_pair(cnum)
+                        color = curses.color_pair(cnum % curses.COLORS)
                     if cap["style"] and color:
                         style = CURSES_STYLES[int(cap["style"])]
                 else:
@@ -328,18 +340,25 @@ class Ui:
 
         header = []
         for idx, entry in enumerate(cols):
-            header.append([col_starts[idx] + len(sample_prefix), entry[0 : adj_colws[idx]].upper()])
+            header.append(
+                [
+                    col_starts[idx] + len(sample_prefix),
+                    entry[0 : adj_colws[idx]].upper(),
+                ]
+            )
 
         results = []
         for index, line in enumerate(lines):
             result = []
             line_prefix = "{index}|".format(index=str(index).rjust(3))
-            result.append([0, line_prefix, curses.color_pair(8)])
+            result.append([0, line_prefix, self._prefix_color])
             for colno, coltext in enumerate(line):
                 if color := WORD_TO_COLOR.get(coltext.lower()):
-                    color = curses.color_pair(color)
+                    color = curses.color_pair(color % curses.COLORS)
                 else:
-                    color = curses.color_pair(COLUMN_COLORS[colno])
+                    column_color = COLUMN_COLORS[colno % len(COLUMN_COLORS)]
+                    color = column_color % curses.COLORS
+                    color = curses.color_pair(color)
                 print_at = col_starts[colno] + len(line_prefix)
                 result.append([print_at, coltext[0 : adj_colws[colno]], color])
             results.append(result)
@@ -459,7 +478,7 @@ class Ui:
         obj,
         index=None,
         columns=None,
-        formatter=D_FORMATTER,
+        formatter=None,
         xform=D_XFORM,
         lexer=D_LEXER,
         wrap=True,
@@ -481,6 +500,7 @@ class Ui:
         """
         # pylint: disable=too-many-arguments
         columns = columns or []
+        formatter = formatter or self._formatter
         if index is not None:
             result = self._show_obj_from_list(obj, index, formatter, xform, lexer, wrap)
         elif columns:
